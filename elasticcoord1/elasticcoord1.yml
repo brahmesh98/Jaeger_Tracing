@@ -1,0 +1,21 @@
+cluster.name: "cluster_elk"
+node.name: "elasticcoord1"
+network.host: 0.0.0.0
+http.port: 9201
+discovery.zen.ping.unicast.hosts: ["elasticcoord1"]
+node.master : true
+node.data : true
+node.ingest: true
+node.ml: false
+path.repo: [""]
+
+xpack.ml.enabled: false
+xpack.graph.enabled: false
+xpack.security.enabled: false
+xpack.watcher.enabled: false
+xpack.monitoring.enabled: false
+
+search.remote.connect: true
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+http.cors.allow-headers: "Authorization"

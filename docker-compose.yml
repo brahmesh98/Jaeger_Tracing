@@ -1,0 +1,131 @@
+version: "3.3"
+
+volumes:
+  elasticcoord1:
+    driver: local
+
+networks:
+  net1:
+     driver: bridge
+
+services:
+  
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.6.1
+    restart: unless-stopped
+    depends_on:
+      - elasticcoord1
+    container_name: kibana
+    volumes:
+      - ../node-skeleton/elasticcoord1/kibana.yml:/usr/share/kibana/config/kibana.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 5601:5601
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 3g
+        reservations:
+          memory: 50M
+    networks:
+      - net1
+
+
+  elasticcoord1:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.6.1
+    container_name: elasticcoord1
+    restart: unless-stopped
+    environment:      
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true     
+    volumes:
+      - elasticcoord1:/usr/share/elasticsearch/data
+      - ../node-skeleton/elasticcoord1/elasticcoord1.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 9201:9201     
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 3g
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - net1
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    container_name: jaeger
+    depends_on:
+      - elasticcoord1
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+    networks:
+      - net1
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+      - QUERY_BASE_PATH=/jaeger
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://elasticcoord1:9201
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
+
+  elasticsearch_exporter:
+    image: justwatch/elasticsearch_exporter:1.0.2
+    env_file:
+      - ./.env
+    command: ['-es.uri=http://${ELASTIC_MASTER_HOST}:${ELASTIC_MASTER_PORT}','-es.all','-es.indices']
+    restart: unless-stopped
+    networks:
+      - net1
+    ports:
+      - "9108:9108"
+    
+  call:
+    build:
+      context: ./callapi
+    container_name : callapi
+
+    ports :
+      - 4000:4000
+    networks : 
+      - net1
+
+  sqr:
+    build:
+      context: ./test2
+    container_name : test2
+    ports :
+      - 4241:4241
+    networks :
+      - net1
+
+  cube:
+    build:
+      context: ./test1
+
+    container_name : test1
+    ports :
+      - 4242:4242
+    networks :
+      - net1
+
+
+
