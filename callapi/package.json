@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@types/jaeger-client": "^3.15.1",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "express": "^4.16.1",
     "jaeger": "^1.0.0",
     "jaeger-client": "^3.15.0",
